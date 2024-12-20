@@ -83,9 +83,9 @@ export function removeKeysFromQuery({
 }
 
 // DEBOUNCE
-export const debounce = (func: (...args: any[]) => void, delay: number) => {
+export const debounce = (func: (...args: unknown[]) => void, delay: number) => {
   let timeoutId: NodeJS.Timeout | null;
-  return (...args: any[]) => {
+  return (...args: unknown[]) => {
     if (timeoutId) clearTimeout(timeoutId);
     timeoutId = setTimeout(() => func.apply(null, args), delay);
   };
@@ -129,27 +129,40 @@ export const download = (url: string, filename: string) => {
 };
 
 // DEEP MERGE OBJECTS
-export const deepMergeObjects = (obj1: any, obj2: any) => {
-  if(obj2 === null || obj2 === undefined) {
-    return obj1;
-  }
-
-  let output = { ...obj2 };
-
-  for (let key in obj1) {
-    if (obj1.hasOwnProperty(key)) {
-      if (
-          obj1[key] &&
-          typeof obj1[key] === "object" &&
-          obj2[key] &&
-          typeof obj2[key] === "object"
-      ) {
-        output[key] = deepMergeObjects(obj1[key], obj2[key]);
-      } else {
-        output[key] = obj1[key];
-      }
+export const deepMergeObjects = <T extends Record<string, any>, U extends Record<string, any>>(
+    obj1: T,
+    obj2: U
+): T & U => {
+    // If obj2 is null or undefined, return obj1 (cast as T & U)
+    if (obj2 === null || obj2 === undefined) {
+        return obj1 as T & U;
     }
-  }
 
-  return output;
+    // Create a new object by shallow cloning obj2
+    const output = { ...obj2 } as T & U;
+
+    // Iterate through keys in obj1
+    for (const key in obj1) {
+        if (Object.prototype.hasOwnProperty.call(obj1, key)) {
+            // If both values are objects, recursively merge
+            if (
+                typeof obj1[key] === "object" &&
+                obj1[key] !== null &&
+                typeof obj2[key] === "object" &&
+                obj2[key] !== null
+            ) {
+                (output as any)[key] = deepMergeObjects(
+                    obj1[key] as Record<string, any>,
+                    obj2[key] as Record<string, any>
+                );
+            } else {
+                // Otherwise, take the value from obj1
+                (output as any)[key] = obj1[key];
+            }
+        }
+    }
+
+    return output;
 };
+
+
